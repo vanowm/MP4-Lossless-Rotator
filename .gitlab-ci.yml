@@ -1,0 +1,48 @@
+.job-base:
+  dependencies: [] # Don't pass job-artifacts to _all_ subsequent jobs by default
+  interruptible: true
+  variables:
+    CI: "true"
+
+.cached-rust-compilation:
+  variables:
+    # Gitlab only allows caching stuff in the project folder, so we need to move $CARGO_HOME there
+    CARGO_HOME: "$CI_PROJECT_DIR/.cargo-home"
+  cache:
+    key: rust-compilation-cache
+    paths:
+      # Cache target folder without the actual artifacts
+      - target/**/.fingerprint/
+      - target/**/.build/
+      - target/**/.deps/
+      - target/**/.examples/
+      - target/**/.incremental/
+      - target/**/.cargo-lock
+      # Cache $CARGO_HOME https://doc.rust-lang.org/cargo/guide/cargo-home.html#caching-the-cargo-home-in-ci
+      - .cargo-home/bin/
+      - .cargo-home/registry/index/
+      - .cargo-home/registry/cache/
+      - .cargo-home/git/db/
+
+binaries:
+  extends:
+    - .job-base
+    - .cached-rust-compilation
+  stage: build
+  image: rust:slim-stretch
+  script:
+    - apt update && apt install -y git mingw-w64
+    - git config --system user.email "info@example.com"
+    - rustup component add clippy rustfmt
+#    - cargo build --release
+    - rustup target add x86_64-pc-windows-gnu
+    - mkdir /.cargo
+    - echo 'build.target = "x86_64-pc-windows-gnu"' >> /.cargo/config.toml
+    - echo 'target.x86_64-pc-windows-gnu.linker = "x86_64-w64-mingw32-gcc"' >> /.cargo/config.toml
+    - cargo build --release
+    - mv target/x86_64-pc-windows-gnu/release/mp4-rotator.exe .
+  artifacts:
+    name: mp4-rotator
+    paths:
+      - mp4-rotator.exe
+    expire_in: 3 months

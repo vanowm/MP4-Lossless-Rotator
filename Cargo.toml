@@ -9,6 +9,7 @@ edition = "2018"
 [dependencies]
 clipboard-win = "*"
 arrayvec = "*"
+close-file = "*"
 
 [profile.release]
 lto = true

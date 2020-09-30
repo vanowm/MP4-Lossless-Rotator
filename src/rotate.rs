@@ -23,8 +23,8 @@ impl RotationMatrix {
 	];
 }
 
-pub fn rotate(mut fh: File) -> Result<(), Box<dyn Error>> {
-	let top_level_atoms = list_atoms(&mut fh, None)?;
+pub fn rotate(fh: &mut File) -> Result<(), Box<dyn Error>> {
+	let top_level_atoms = list_atoms(fh, None)?;
 
 	if top_level_atoms.len() == 0 || top_level_atoms[0].atom_type.as_str() != "ftyp" {
 		return Err(Box::from("ftyp box not found"));
@@ -34,7 +34,7 @@ pub fn rotate(mut fh: File) -> Result<(), Box<dyn Error>> {
 
 	eprintln!("Found moov box at {}", moov_atom.start);
 
-	let trak_atoms: Vec<_> = list_atoms(&mut fh, Some(moov_atom))?
+	let trak_atoms: Vec<_> = list_atoms(fh, Some(moov_atom))?
 		.into_iter()
 		.filter(|a| a.atom_type.as_str() == "trak")
 		.collect();
@@ -45,13 +45,13 @@ pub fn rotate(mut fh: File) -> Result<(), Box<dyn Error>> {
 		eprintln!("Found trak box at {}", trak_atom.start);
 		eprint!("Walking trak -> ");
 		eprint!("mdia -> ");
-		let mdia_atom = find_atom(list_atoms(&mut fh, Some(trak_atom.clone()))?, "mdia")?;
+		let mdia_atom = find_atom(list_atoms(fh, Some(trak_atom.clone()))?, "mdia")?;
 		eprint!("hdlr");
-		let hdlr_atom = find_atom(list_atoms(&mut fh, Some(mdia_atom))?, "hdlr")?;
+		let hdlr_atom = find_atom(list_atoms(fh, Some(mdia_atom))?, "hdlr")?;
 		eprintln!();
 
 		// https://developer.apple.com/library/archive/documentation/QuickTime/QTFF/QTFFChap2/qtff2.html#//apple_ref/doc/uid/TP40000939-CH204-25621
-		let component_subtype = read_atom_data(&mut fh, hdlr_atom, 16, 4)?;
+		let component_subtype = read_atom_data(fh, hdlr_atom, 16, 4)?;
 		eprintln!("Track type: {}", String::from_utf8_lossy(&component_subtype));
 
 		if component_subtype == b"vide" {
@@ -69,10 +69,10 @@ pub fn rotate(mut fh: File) -> Result<(), Box<dyn Error>> {
 
 	eprintln!("Found video track");
 
-	let tkhd_atom = find_atom(list_atoms(&mut fh, Some(video_track))?, "tkhd")?;
+	let tkhd_atom = find_atom(list_atoms(fh, Some(video_track))?, "tkhd")?;
 
 	// https://developer.apple.com/library/archive/documentation/QuickTime/QTFF/QTFFChap2/qtff2.html#//apple_ref/doc/uid/TP40000939-CH204-25550
-	let matrix_structure = read_atom_data(&mut fh, tkhd_atom.clone(), 48, 36)?;
+	let matrix_structure = read_atom_data(fh, tkhd_atom.clone(), 48, 36)?;
 	eprint!("Rotation matrix found: ");
 	let next_matrix = next_matrix(matrix_structure)?;
 

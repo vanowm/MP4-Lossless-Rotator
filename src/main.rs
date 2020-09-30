@@ -1,5 +1,6 @@
 use crate::rotate::rotate;
 use clipboard_win::{formats, get_clipboard};
+use close_file::Closable;
 use std::env;
 use std::error::Error;
 use std::ffi::OsString;
@@ -28,11 +29,10 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 	eprintln!("Processing file: {}", PathBuf::from(&filepath).display());
 
-	{
-		let fh = OpenOptions::new().read(true).write(true).open(filepath)?;
-		rotate(fh)?;
-		// TODO: Close the file
-	}
+	let mut fh = OpenOptions::new().read(true).write(true).open(filepath)?;
+	rotate(&mut fh)?;
+	fh.close()?;
+
 	eprintln!("Done.");
 
 	Ok(())

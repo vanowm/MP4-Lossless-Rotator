@@ -9,7 +9,7 @@ Latest version: [Windows](https://gitlab.com/AndreKR/mp4-rotator/-/jobs/artifact
 ## Usage
 
 Either specify a file path on the command line:
-```shell
+```
 mp4-rotator c:\path\to\video.mp4
 ```
 

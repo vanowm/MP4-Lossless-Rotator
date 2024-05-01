@@ -29,7 +29,7 @@ binaries:
     - .job-base
     - .cached-rust-compilation
   stage: build
-  image: rust:slim-stretch
+  image: rust:slim-bookworm
   script:
     - apt update && apt install -y git mingw-w64
     - git config --system user.email "info@example.com"

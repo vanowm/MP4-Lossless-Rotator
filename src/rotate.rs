@@ -140,15 +140,23 @@ fn list_atoms(file: &mut File, in_atom: Option<Atom>) -> Result<Vec<Atom>, Box<d
 	while pos < end {
 		file.seek(SeekFrom::Start(pos))?;
 		file.read_exact(&mut buf)?;
-		let atom_size = u32::from_be_bytes(buf[..4].try_into()?);
+		let mut atom_size = u32::from_be_bytes(buf[..4].try_into()?) as u64;
 		let atom_type: ArrayString<[u8; 4]> = ArrayString::from_byte_string(buf[4..].try_into()?)?;
+
+		// mdat atoms whose size doesn't fit in the 32-bit length field have their length field set
+		// to 1 and start with a 64-bit extended length field.
+		if atom_type.as_str() == "mdat" && atom_size == 1 {
+			file.read_exact(&mut buf)?;
+			atom_size = u64::from_be_bytes(buf);
+		}
+
 		if atom_size < 8 {
 			println!(); // Because we might be in the "Walking ..." part
 			return Err(Box::from(format!("Invalid box size {} < 8", atom_size)));
 		}
 		atoms.push(Atom {
 			start: pos,
-			size: atom_size as u64,
+			size: atom_size,
 			atom_type,
 		});
 		pos += atom_size as u64;

@@ -1,15 +1,34 @@
 [package]
 name = "mp4-rotator"
-version = "0.1.0"
-authors = ["André Hänsel <haensel@creations.de>"]
-edition = "2018"
+version = "0.2.0"
+authors = ["André Hänsel <haensel@creations.de>", "vanowm <mp4-rotator-id250908@vano.org>"]
+description = "A tool for lossless rotation of MP4 video files"
+homepage = "https://github.com/vanowm/mp4-rotator"
+# license = "MIT"
+edition = "2024"
+build = "build.rs"
 
+[package.metadata.winres]
+ProductName = "MP4 Rotator"
+FileDescription = "Lossless rotation of MP4 video files"
+OriginalFilename = "mp4-rotator.exe"
+# LegalCopyright = "Copyright © 2025"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 clipboard-win = "*"
 arrayvec = "*"
 close-file = "*"
+chrono = "*"
+filetime = "0.2"
+
+[build-dependencies]
+winres = "*"
+winapi = "*"
 
 [profile.release]
+opt-level = 3
 lto = true
+codegen-units = 1
+panic = "abort"
+strip = "symbols"

@@ -1,0 +1,79 @@
+{
+	"folders": [
+		{
+			"path": ".."
+		}
+	],
+	"settings": {
+		"cSpell.words": [
+			"André",
+			"arrayvec",
+			"chrono",
+			"codegen",
+			"filetime",
+			"ftyp",
+			"Hänsel",
+			"hdlr",
+			"MAKELANGID",
+			"mdat",
+			"mdia",
+			"moov",
+			"soun",
+			"splitn",
+			"SUBLANG",
+			"tkhd",
+			"trak",
+			"winapi",
+			"winres"
+		]
+	}
+	,
+	"launch": {
+		"version": "0.2.0",
+		"configurations": [
+			{
+				"name": "Debug Rust (cargo run)",
+				"type": "lldb",
+				"request": "launch",
+				"program": "${workspaceFolder}/target/debug/mp4-rotator.exe",
+				"args": ["-b"],
+				"cwd": "${workspaceFolder}",
+				"preLaunchTask": "rust: cargo build",
+				"stopOnEntry": false,
+				"sourceLanguages": ["rust"]
+			}
+		]
+	},
+	"tasks": {
+		"version": "2.0.0",
+		"tasks": [
+			{
+				"label": "rust: cargo build",
+				"type": "cargo",
+				"command": "build",
+				"problemMatcher": ["$rustc"],
+				"group": "build"
+			},
+			{
+				"label": "cargo build --release",
+				"type": "shell",
+				"command": "cargo",
+				"args": ["build", "--release"],
+				"group": "build",
+				"problemMatcher": ["$rustc"]
+			},
+			{
+				"label": "Run Release Binary",
+				"type": "shell",
+				"command": "target/release/mp4-rotator.exe -b",
+				"group": "test",
+				"presentation": {
+					"echo": true,
+					"reveal": "always",
+					"focus": false,
+					"panel": "shared"
+				}
+			}
+		]
+	}
+}

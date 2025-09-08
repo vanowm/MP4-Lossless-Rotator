@@ -23,8 +23,17 @@ impl RotationMatrix {
 	];
 }
 
-pub fn rotate(fh: &mut File) -> Result<(), Box<dyn Error>> {
-	let top_level_atoms = list_atoms(fh, None)?;
+const ROTATION_MATRIX_ARRAY: [&'static [u8]; 4] = [
+	RotationMatrix::NO_ROTATION,
+	RotationMatrix::ROTATION_90,
+	RotationMatrix::ROTATION_180,
+	RotationMatrix::ROTATION_270
+];
+
+use std::path::Path;
+pub fn rotate(path: &Path, rotation: Option<u32>, backup: bool) -> Result<(), Box<dyn Error>> {
+	let mut fh = File::options().read(true).write(true).open(path)?;
+	let top_level_atoms = list_atoms(&mut fh, None)?;
 
 	if top_level_atoms.len() == 0 || top_level_atoms[0].atom_type.as_str() != "ftyp" {
 		return Err(Box::from("ftyp box not found"));
@@ -32,9 +41,9 @@ pub fn rotate(fh: &mut File) -> Result<(), Box<dyn Error>> {
 
 	let moov_atom = find_atom(top_level_atoms, "moov")?;
 
-	eprintln!("Found moov box at {}", moov_atom.start);
+	println!("Found moov box at {}", moov_atom.start);
 
-	let trak_atoms: Vec<_> = list_atoms(fh, Some(moov_atom))?
+	let trak_atoms: Vec<_> = list_atoms(&mut fh, Some(moov_atom))?
 		.into_iter()
 		.filter(|a| a.atom_type.as_str() == "trak")
 		.collect();
@@ -42,17 +51,17 @@ pub fn rotate(fh: &mut File) -> Result<(), Box<dyn Error>> {
 	let mut video_tracks = Vec::with_capacity(1);
 
 	for trak_atom in trak_atoms {
-		eprintln!("Found trak box at {}", trak_atom.start);
+		println!("Found trak box at {}", trak_atom.start);
 		eprint!("Walking trak -> ");
 		eprint!("mdia -> ");
-		let mdia_atom = find_atom(list_atoms(fh, Some(trak_atom.clone()))?, "mdia")?;
-		eprint!("hdlr");
-		let hdlr_atom = find_atom(list_atoms(fh, Some(mdia_atom))?, "hdlr")?;
-		eprintln!();
+		let mdia_atom = find_atom(list_atoms(&mut fh, Some(trak_atom.clone()))?, "mdia")?;
+		print!("hdlr");
+		let hdlr_atom = find_atom(list_atoms(&mut fh, Some(mdia_atom))?, "hdlr")?;
+		println!();
 
 		// https://developer.apple.com/library/archive/documentation/QuickTime/QTFF/QTFFChap2/qtff2.html#//apple_ref/doc/uid/TP40000939-CH204-25621
-		let component_subtype = read_atom_data(fh, hdlr_atom, 16, 4)?;
-		eprintln!("Track type: {}", String::from_utf8_lossy(&component_subtype));
+		let component_subtype = read_atom_data(&mut fh, hdlr_atom, 16, 4)?;
+		println!("Track type: {}", String::from_utf8_lossy(&component_subtype));
 
 		if component_subtype == b"vide" {
 			video_tracks.push(trak_atom);
@@ -67,43 +76,92 @@ pub fn rotate(fh: &mut File) -> Result<(), Box<dyn Error>> {
 	}
 	let video_track = video_tracks.into_iter().next().unwrap();
 
-	eprintln!("Found video track");
+	println!("Found video track");
 
-	let tkhd_atom = find_atom(list_atoms(fh, Some(video_track))?, "tkhd")?;
+	let tkhd_atom = find_atom(list_atoms(&mut fh, Some(video_track))?, "tkhd")?;
 
 	// https://developer.apple.com/library/archive/documentation/QuickTime/QTFF/QTFFChap2/qtff2.html#//apple_ref/doc/uid/TP40000939-CH204-25550
-	let matrix_structure = read_atom_data(fh, tkhd_atom.clone(), 48, 36)?;
-	eprint!("Rotation matrix found: ");
-	let next_matrix = next_matrix(matrix_structure)?;
+	let matrix_structure = read_atom_data(&mut fh, tkhd_atom.clone(), 48, 36)?;
+	print!("Rotation matrix found: ");
+	let index = rotation_matrix_index(&matrix_structure.as_slice())?;
+	print!("{}° => ", index * 90);
+	let current_matrix = ROTATION_MATRIX_ARRAY[index];
+	let next_matrix = match rotation {
+		None => ROTATION_MATRIX_ARRAY[(index + 1) % 4],
+		Some(rotation) => ROTATION_MATRIX_ARRAY[(rotation / 90) as usize],
+	};
+	if current_matrix == next_matrix {
+		println!("no change needed");
+		return Ok(());
+	} else {
+		println!("changing to: {}", rotation_matrix_to_str(next_matrix)?);
+	}
+	use std::fs;
+	// Backup before writing if requested
+	let backup_path = if backup {
+		let ext = &path.extension().and_then(std::ffi::OsStr::to_str).unwrap_or("");
+		let stem = &path.file_stem().and_then(std::ffi::OsStr::to_str).unwrap_or("");
+		let meta = std::fs::metadata(&path)?;
+		use chrono::TimeZone;
+		let modified_time = meta.modified().ok()
+			.and_then(|mtime| mtime.duration_since(std::time::UNIX_EPOCH).ok())
+			.map(|d| d.as_secs() as i64)
+			.unwrap_or(0);
+		let datetime = chrono::Local.timestamp_opt(modified_time, 0).unwrap();
+		let datetime_str = datetime.format("%Y%m%d_%H%M%S");
+		let backup_name = if ext.is_empty() {
+			format!("{}_{}.mp4", stem, datetime_str)
+		} else {
+			format!("{}_{}.{}", stem, datetime_str, ext)
+		};
+		Some(&path.with_file_name(backup_name))
+	} else {
+		None
+	};
+	if let Some(backup_path) = backup_path {
+		println!("Backing up original file to {}", backup_path.display());
+		// doing this nonsense so the backup file gets the same modified/created time as the original
+		let mut backup_path_temp = backup_path.to_path_buf();
+		backup_path_temp.set_extension(
+			match backup_path.extension().and_then(|e| e.to_str()) {
+				Some(ext) => format!("{}.tmp", ext),
+				None => "tmp".to_string(),
+			}
+		);
+		fs::rename(path, &backup_path_temp)?;
+		fs::copy(&backup_path_temp, path)?;
+		fs::rename(&backup_path_temp, backup_path)?;
 
-	eprintln!("Writing new rotation matrix now");
-
-	fh.seek(SeekFrom::Start(tkhd_atom.start + 48))?;
-	fh.write_all(next_matrix)?;
-
+		fh = File::options().read(true).write(true).open(path)?;
+	}
+	print!("Writing new rotation matrix: ");
+	if let Err(e) = fh.seek(SeekFrom::Start(tkhd_atom.start + 48)) {
+		eprintln!("error seeking to rotation matrix: {}", e);
+		return Err(Box::from(e));
+	}
+	if let Err(e) = fh.write_all(next_matrix) {
+		eprintln!("error writing rotation matrix: {}", e);
+		return Err(Box::from(e));
+	}
+	println!("success");
 	Ok(())
 }
 
-fn next_matrix(current_matrix: Vec<u8>) -> Result<&'static [u8], Box<dyn Error>> {
-	Ok(match &*current_matrix {
-		RotationMatrix::NO_ROTATION => {
-			eprintln!("No rotation => changing to: 90°");
-			RotationMatrix::ROTATION_90
-		}
-		RotationMatrix::ROTATION_90 => {
-			eprintln!("90° => changing to: 180°");
-			RotationMatrix::ROTATION_180
-		}
-		RotationMatrix::ROTATION_180 => {
-			eprintln!("180° => changing to: 270°");
-			RotationMatrix::ROTATION_270
-		}
-		RotationMatrix::ROTATION_270 => {
-			eprintln!("270° => changing to: No rotation");
-			RotationMatrix::NO_ROTATION
-		}
-		_ => return Err(Box::from("Current rotation matrix unknown")),
-	})
+fn rotation_matrix_to_str(matrix: &[u8]) -> Result<String, Box<dyn Error>> {
+	if let Some(idx) = rotation_matrix_index(matrix).ok() {
+		return Ok(format!("{}°", idx * 90));
+	}
+	else {
+		return Err(Box::from("n/a"));
+	}
+}
+fn rotation_matrix_index(matrix: &[u8]) -> Result<usize, Box<dyn Error>> {
+	if let Some(idx) = ROTATION_MATRIX_ARRAY.iter().position(|&x| x == matrix) {
+		return Ok(idx);
+	}
+	else {
+		return Err(Box::from("n/a"));
+	}
 }
 
 fn read_atom_data(file: &mut File, atom: Atom, offset: u64, length: u64) -> Result<Vec<u8>, Box<dyn Error>> {

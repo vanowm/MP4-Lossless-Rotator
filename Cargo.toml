@@ -7,6 +7,7 @@ homepage = "https://github.com/vanowm/mp4-rotator"
 # license = "MIT"
 edition = "2024"
 build = "build.rs"
+repository = "https://github.com/vanowm/MP4-Lossless-Rotator.git"
 
 [package.metadata.winres]
 ProductName = "MP4 Rotator"
@@ -32,3 +33,8 @@ lto = true
 codegen-units = 1
 panic = "abort"
 strip = "symbols"
+
+# The profile that 'dist' will build with
+[profile.dist]
+inherits = "release"
+lto = "thin"

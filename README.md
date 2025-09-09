@@ -4,7 +4,7 @@ This rotates MP4 files losslessly by switching the rotation matrix in the track 
 
 ## Download
 
-Latest version: [Windows](https://gitlab.com/AndreKR/mp4-rotator/-/jobs/artifacts/master/download?job=binaries)
+Latest version: [Windows](https://github.com/vanowm/MP4-Lossless-Rotator/releases/latest/download/mp4-rotator-x86_64-pc-windows-msvc.zip)
 
 ## Usage
 

@@ -1,36 +1,69 @@
-# Lossless MP4 rotator
 
-This rotates MP4 files losslessly by switching the rotation matrix in the track header.
+# MP4 Lossless Rotator
+
+<p align="center">
+	<b>Rotate MP4 videos instantly and losslessly by changing the rotation matrix—no re-encoding required!</b><br>
+	<a href="https://github.com/vanowm/MP4-Lossless-Rotator/releases/latest"><img src="https://img.shields.io/github/v/release/vanowm/MP4-Lossless-Rotator?label=Latest%20Release" alt="Latest Release"></a>
+	<a href="https://github.com/vanowm/MP4-Lossless-Rotator/blob/master/LICENSE"><img src="https://img.shields.io/github/license/vanowm/MP4-Lossless-Rotator.svg" alt="License"></a>
+</p>
+
+---
+
+This tool rotates MP4 files losslessly by modifying the rotation matrix in the track header. No video or audio data is re-encoded, so the process is instant and quality is preserved.
+
 
 ## Download
 
-Latest version: [Windows](https://github.com/vanowm/MP4-Lossless-Rotator/releases/latest/download/mp4-rotator-x86_64-pc-windows-msvc.zip)
+**[Download for Windows (latest release)](https://github.com/vanowm/MP4-Lossless-Rotator/releases/latest/download/mp4-rotator-x86_64-pc-windows-msvc.zip)**
+
 
 ## Usage
 
-Either specify file paths in the command line:
+### 1. Command Line
+
+Specify one or more file paths:
+
+```sh
+mp4-rotator C:\path\to\video1.mp4 C:\path\to\video2.mp4 C:\path\to\video3.mp4
 ```
-mp4-rotator c:\path\to\video1.mp4 c:\path\to\video2.mp4 c:\path\to\video3.mp4
+
+### 2. Clipboard
+
+Copy the file(s) in Windows Explorer:
+
+<p align="center"><img src="docs/copy.png" width="300" alt="Copy to clipboard"></p>
+
+Then simply run:
+
+```sh
+mp4-rotator
 ```
 
-Or copy the file(s) into the Windows clipboard
+---
 
-![](docs/copy.png)
+By default, the tool rotates 90° clockwise from the current rotation. You can change this and other options with command line parameters:
 
-and then simply run `mp4-rotator`.
+|   Parameter   |   Description   |
+|:------------:|:---------------:|
+| `--rotate=`*`nn`* or `-r=`*`nn`* | Set rotation to *`nn`* degrees. Accepted: `0`, `90`, `180`, `270`. |
+| `--backup` or `-b` | Backup original file (creates a backup with a date suffix). |
 
-By default it rotates 90° clockwise from current rotation. This can be changed with command line parameters:
+Example:
 
-
-|Parameter|Description|
-|------------|---------------|
-| `--rotate=`*`nn`* OR `-r=`*`nn`*           | Specify rotation to *`nn`* degrees. Accepted values: `0`, `90`, `180`, `270`.   |
-| `--backup` OR `-b`       | Backup original file. It will create a backup file with modified date suffix|
-
+```sh
+mp4-rotator --rotate=180 --backup C:\path\to\video1.mp4 C:\path\to\video2.mp4
 ```
-mp4-rotator --rotate=180 --backup c:\path\to\video1.mp4 c:\path\to\video2.mp4
-```
-## Example output
+
+---
+
+### Configuration File
+
+If present, `mp4-rotator.ini` in the same directory as the executable will be loaded for default options.
+See [`mp4-rotator_example.ini`](https://github.com/vanowm/MP4-Lossless-Rotator/blob/master/mp4-rotator_example.ini) for available parameters.
+
+---
+
+## Example Output
 
 The tool prints detailed information about its process and aborts if it encounters anything unexpected in the file:
 
@@ -50,12 +83,12 @@ Writing new rotation matrix: success
 Finished.
 ```
 
+
 ## Credits
 
-[original repository](https://gitlab.com/AndreKR/mp4-rotator) by [André Hänsel](https://gitlab.com/AndreKR)
+- Based on the [original repository](https://gitlab.com/AndreKR/mp4-rotator) by [André Hänsel](https://gitlab.com/AndreKR)
+- Thanks to user aXeL-HH on StackOverflow for publishing [this method](https://stackoverflow.com/questions/25031557/rotate-mp4-videos-without-re-encoding/49535017#49535017)
 
-Thanks to user aXeL-HH on StackOverflow for publishing
-[this method](https://stackoverflow.com/questions/25031557/rotate-mp4-videos-without-re-encoding/49535017#49535017).
 
 
 ## TODO

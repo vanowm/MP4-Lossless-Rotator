@@ -20,12 +20,12 @@ mp4-rotator C:\path\to\video1.mp4 C:\path\to\video2.mp4
 ```
 
 ### B. Clipboard (Windows Explorer)
-Copy the file(s) in Explorer, then run:
+Copy the file(s) in Explorer<p align="center"><img src="docs/copy.png" width="300" alt="Copy to clipboard"></p>
+
+then run:
 ```sh
 mp4-rotator
 ```
-<p align="center"><img src="docs/copy.png" width="300" alt="Copy to clipboard"></p>
-
 ## Options
 - Default: rotate 90° clockwise from current orientation.
 
